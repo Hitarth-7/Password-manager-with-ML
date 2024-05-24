@@ -17,6 +17,10 @@ def get_user_image(username):
     # Opening webcam
     cap = cv2.VideoCapture(0)
 
+    if not cap.isOpened(): 
+        print("Something went wrong while opening the webcam")
+        return None
+
     # Initalising classifiers
     face_cascade = cv2.CascadeClassifier('src/models/haarcascade_frontalface_default.xml')
     eye_cascade = cv2.CascadeClassifier('src/models/haarcascade_eye.xml')
@@ -25,10 +29,13 @@ def get_user_image(username):
     output_directory = "public/user_images"
     create_folder(output_directory)
 
+    image_path = None
+
     while True:
         ret, frame = cap.read()
         
         if not ret:
+            print("Something went wrong while capturing the image")
             break
 
         gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -37,7 +44,7 @@ def get_user_image(username):
         faces_rect = face_cascade.detectMultiScale(gray_img, scaleFactor=2.0, minNeighbors=5)
         eyes_rect = eye_cascade.detectMultiScale(gray_img, scaleFactor=1.3, minNeighbors=9)
         
-        # If one pair of face and eyes are detected then that user's image will be saved
+        # # If one pair of face and eyes are detected then that user's image will be saved
         if len(faces_rect) == 1 and len(eyes_rect) == 1:
             image_path = f"{output_directory}/{username}.jpg"
             cv2.imwrite(image_path, frame)
@@ -45,6 +52,9 @@ def get_user_image(username):
 
         cv2.imshow("Webcam Window", frame)
 
+        # Press 'q' to quit
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
     cap.release()
     cv2.destroyAllWindows()
@@ -59,7 +69,7 @@ def convert_to_encodings(image_path):
 
     image = face_recognition.load_image_file(image_path)
 
-    name = os.path.split(image)[0]
+    name = os.path.split(image_path)[0]
 
     face_encodings = face_recognition.face_encodings(image)
 
@@ -67,6 +77,7 @@ def convert_to_encodings(image_path):
         known_encodings.append(encoding)
         known_names.append(name)
 
+    create_folder("public/encodings")
     data = {"encodings": known_encodings, "name": known_names}
 
     with open("public/encodings/face_encodings.pickle", "wb") as file:
@@ -76,4 +87,6 @@ def convert_to_encodings(image_path):
 
 if __name__ == "__main__":
     image_path = get_user_image("Pranjal Mantri")
-    convert_to_encodings(image_path)
+
+    if image_path:
+        convert_to_encodings(image_path)
